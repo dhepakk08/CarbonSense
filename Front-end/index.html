@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CarbonSense — Personal Carbon Footprint Tracker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<header class="topbar">
+  <div class="topbar__inner">
+    <a href="#" class="wordmark" data-nav="dashboard">
+      <span class="wordmark__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2C7 6 4 10.5 4 14.5 4 19.2 7.6 22 12 22s8-2.8 8-7.5C20 10.5 17 6 12 2Z" fill="currentColor"/></svg>
+      </span>
+      CarbonSense
+    </a>
+    <nav class="navlinks" id="navlinks">
+      <button class="navlink" data-nav="dashboard">Dashboard</button>
+      <button class="navlink" data-nav="log">Log activity</button>
+      <button class="navlink" data-nav="goals">Goals</button>
+    </nav>
+    <div class="topbar__user">
+      <span class="topbar__hello" id="helloUser" hidden></span>
+      <button class="btn btn--ghost" id="logoutBtn" hidden>Log out</button>
+      <button class="btn btn--ghost" id="loginNavBtn" data-nav="login">Log in</button>
+    </div>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- ================= LOGIN VIEW ================= -->
+  <section class="view" id="view-login">
+    <div class="auth-shell">
+      <div class="auth-card">
+        <p class="eyebrow">Welcome back</p>
+        <h1 class="auth-title">Track what you use.<br>See what it costs the planet.</h1>
+        <form id="loginForm" class="form" novalidate>
+          <label class="field">
+            <span class="field__label">Name</span>
+            <input type="text" name="name" placeholder="e.g. Aditi Rao" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Email</span>
+            <input type="email" name="email" placeholder="you@example.com" required />
+          </label>
+          <button type="submit" class="btn btn--primary btn--block">Enter dashboard</button>
+          <p class="form__hint">No password needed for this demo build — a name and email create your local profile.</p>
+        </form>
+      </div>
+      <aside class="auth-side" aria-hidden="true">
+        <div class="rings-preview" id="ringsPreview"></div>
+        <p class="auth-side__caption">Every ring is a category. The tighter the rings, the lighter the footprint.</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= DASHBOARD VIEW ================= -->
+  <section class="view" id="view-dashboard" hidden>
+    <div class="page">
+
+      <div class="dash-hero">
+        <div class="dash-hero__figure">
+          <div class="rings-chart" id="ringsChart"></div>
+        </div>
+        <div class="dash-hero__stats">
+          <p class="eyebrow">This month · <span id="monthLabel">—</span></p>
+          <h1 class="stat-big"><span id="totalCo2">0</span><span class="stat-big__unit">kg CO₂e</span></h1>
+          <p class="stat-sub" id="statTrend">Log your first activity to start your reading.</p>
+
+          <ul class="legend" id="categoryLegend"></ul>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <section class="panel">
+          <div class="panel__head">
+            <h2>Recent activity</h2>
+            <button class="btn btn--small" data-nav="log">+ Log new</button>
+          </div>
+          <ul class="activity-list" id="activityList">
+            <li class="empty-state">Nothing logged yet — your activity feed will show up here.</li>
+          </ul>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
+            <h2>Suggestions for you</h2>
+            <span class="tag">AI-assisted</span>
+          </div>
+          <ul class="tip-list" id="tipList">
+            <li class="empty-state">Tips appear once there's data to learn from.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LOG ACTIVITY VIEW ================= -->
+  <section class="view" id="view-log" hidden>
+    <div class="page page--narrow">
+      <p class="eyebrow">New entry</p>
+      <h1 class="page-title">Log an activity</h1>
+      <p class="page-lede">Add one thing you did today. CarbonSense converts it to CO₂e using standard emission factors.</p>
+
+      <div class="tabs" id="categoryTabs">
+        <button class="tab is-active" data-cat="travel">Travel</button>
+        <button class="tab" data-cat="electricity">Electricity</button>
+        <button class="tab" data-cat="food">Food</button>
+        <button class="tab" data-cat="waste">Waste</button>
+      </div>
+
+      <form id="activityForm" class="form panel">
+        <!-- Travel fields -->
+        <div class="cat-fields" data-cat-fields="travel">
+          <label class="field">
+            <span class="field__label">Mode of transport</span>
+            <select name="mode">
+              <option value="car_petrol">Car — petrol</option>
+              <option value="car_diesel">Car — diesel</option>
+              <option value="bus">Bus</option>
+              <option value="train">Train / metro</option>
+              <option value="flight">Flight</option>
+              <option value="bike">Bicycle / walk</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">Distance (km)</span>
+            <input type="number" name="distance" min="0" step="0.1" placeholder="e.g. 12.5" />
+          </label>
+        </div>
+
+        <!-- Electricity fields -->
+        <div class="cat-fields" data-cat-fields="electricity" hidden>
+          <label class="field">
+            <span class="field__label">Units consumed (kWh)</span>
+            <input type="number" name="units" min="0" step="0.1" placeholder="e.g. 8.2" />
+          </label>
+        </div>
+
+        <!-- Food fields -->
+        <div class="cat-fields" data-cat-fields="food" hidden>
+          <label class="field">
+            <span class="field__label">Meal type</span>
+            <select name="mealType">
+              <option value="meat">Meat-based meal</option>
+              <option value="dairy">Dairy / egg-based meal</option>
+              <option value="veg">Vegetarian meal</option>
+              <option value="vegan">Vegan meal</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">Number of meals</span>
+            <input type="number" name="meals" min="0" step="1" placeholder="e.g. 2" />
+          </label>
+        </div>
+
+        <!-- Waste fields -->
+        <div class="cat-fields" data-cat-fields="waste" hidden>
+          <label class="field">
+            <span class="field__label">Waste type</span>
+            <select name="wasteType">
+              <option value="landfill">General / landfill</option>
+              <option value="recycled">Recycled</option>
+              <option value="composted">Composted</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">Weight (kg)</span>
+            <input type="number" name="weight" min="0" step="0.1" placeholder="e.g. 1.2" />
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field__label">Date</span>
+          <input type="date" name="date" />
+        </label>
+
+        <div class="form__actions">
+          <button type="submit" class="btn btn--primary">Calculate &amp; save</button>
+          <span class="form__result" id="formResult"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ================= GOALS VIEW ================= -->
+  <section class="view" id="view-goals" hidden>
+    <div class="page page--narrow">
+      <p class="eyebrow">Set a target</p>
+      <h1 class="page-title">Your reduction goal</h1>
+      <p class="page-lede">Pick a monthly cap. CarbonSense tracks how close you are as you log activities.</p>
+
+      <form id="goalForm" class="form panel">
+        <label class="field">
+          <span class="field__label">Monthly target (kg CO₂e)</span>
+          <input type="number" name="target" min="1" step="1" placeholder="e.g. 150" />
+        </label>
+        <div class="form__actions">
+          <button type="submit" class="btn btn--primary">Save goal</button>
+          <span class="form__result" id="goalResult"></span>
+        </div>
+      </form>
+
+      <div class="panel goal-progress">
+        <div class="panel__head">
+          <h2>Progress this month</h2>
+          <span class="tag" id="goalStatusTag">No goal set</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="goalProgressFill" style="width:0%"></div>
+        </div>
+        <p class="progress-caption" id="goalProgressCaption">Set a goal above to see your progress bar.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>CarbonSense — a personal carbon footprint tracker &amp; sustainability advisor. Built for CSA1012.</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
