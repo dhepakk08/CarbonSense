@@ -1,0 +1,46 @@
+# docker-compose.yml
+# ------------------------------------------------------------
+# Brings up the whole CarbonSense stack with one command:
+#   docker compose up --build
+#
+# frontend  -> http://localhost:8080   (nginx, static site + /api proxy)
+# backend   -> http://localhost:5000   (Flask API, exposed too for
+#                                        direct curl/Postman testing)
+# database  -> ./database/database.db  (SQLite file, persisted on
+#                                        the host via a bind mount so
+#                                        data survives container restarts)
+# ------------------------------------------------------------
+
+services:
+  backend:
+    build:
+      context: ./Back-end
+      dockerfile: Dockerfile
+    container_name: carbonsense-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      # database.py resolves its DB path to <backend>/../database,
+      # which inside the container is /database — mount the host's
+      # ./database folder there so the SQLite file persists outside
+      # the container's writable layer.
+      - ./database:/database
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./Front-end
+      dockerfile: Dockerfile
+    container_name: carbonsense-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
