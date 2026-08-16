@@ -259,5 +259,8 @@ def get_goal(user_id):
 
 # ----------------------------------------------------------------------
 if __name__ == "__main__":
-    # host 0.0.0.0 so the app is reachable from outside the Docker container
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(
+        host="0.0.0.0",  # nosec B104
+        port=5000,
+        debug=False,
+    )

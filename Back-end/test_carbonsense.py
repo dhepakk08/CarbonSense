@@ -8,6 +8,7 @@ Automated test suite for the CarbonSense backend, covering:
 
 Run with: pytest test_carbonsense.py -v
 """
+# nosec B101
 
 import pytest
 
@@ -19,31 +20,31 @@ import recommendation as rec
 class TestCarbonCalculator:
 
     def test_travel_car_petrol(self):
-        assert cc.calculate_co2(
+        assert cc.calculate_co2(  # nosec B101
             "travel",
             {"mode": "car_petrol", "distance": 25}
         ) == 4.8
 
     def test_travel_bike_is_zero(self):
-        assert cc.calculate_co2(
+        assert cc.calculate_co2(  # nosec B101
             "travel",
             {"mode": "bike", "distance": 100}
         ) == 0.0
 
     def test_electricity(self):
-        assert cc.calculate_co2(
+        assert cc.calculate_co2(  # nosec B101
             "electricity",
             {"units": 20}
         ) == 16.4
 
     def test_food_meat(self):
-        assert cc.calculate_co2(
+        assert cc.calculate_co2(  # nosec B101
             "food",
             {"mealType": "meat", "meals": 3}
         ) == 9.9
 
     def test_waste_composted(self):
-        assert cc.calculate_co2(
+        assert cc.calculate_co2(  # nosec B101
             "waste",
             {"wasteType": "composted", "weight": 2}
         ) == 0.1
@@ -82,9 +83,9 @@ class TestCarbonCalculator:
 
         totals = cc.category_totals(activities)
 
-        assert totals["travel"] == 5.8
-        assert totals["food"] == 9.9
-        assert totals["electricity"] == 0.0
+        assert totals["travel"] == 5.8  # nosec B101
+        assert totals["food"] == 9.9  # nosec B101
+        assert totals["electricity"] == 0.0  # nosec B101
 
 
 # 2. recommendation.py — unit tests
@@ -93,8 +94,8 @@ class TestRecommendation:
     def test_empty_activities_returns_default_tip(self):
         tips = rec.generate_tips([])
 
-        assert len(tips) == 1
-        assert "Keep logging" in tips[0]
+        assert len(tips) == 1  # nosec B101
+        assert "Keep logging" in tips[0]  # nosec B101
 
     def test_high_car_km_triggers_carpool_tip(self):
         activities = [
@@ -108,7 +109,7 @@ class TestRecommendation:
 
         tips = rec.generate_tips(activities)
 
-        assert any("carpooling" in tip for tip in tips)
+        assert any("carpooling" in tip for tip in tips)  # nosec B101
 
     def test_meat_heavy_diet_triggers_plant_based_tip(self):
         activities = [
@@ -131,7 +132,7 @@ class TestRecommendation:
 
         tips = rec.generate_tips(activities)
 
-        assert any("plant-based" in tip for tip in tips)
+        assert any("plant-based" in tip for tip in tips)  # nosec B101
 
     def test_low_activity_does_not_overtrigger(self):
         activities = [
@@ -145,7 +146,7 @@ class TestRecommendation:
 
         tips = rec.generate_tips(activities)
 
-        assert len(tips) >= 1
+        assert len(tips) >= 1  # nosec B101
 
     def test_returns_at_most_four_tips(self):
         activities = [
@@ -183,7 +184,7 @@ class TestRecommendation:
 
         tips = rec.generate_tips(activities)
 
-        assert len(tips) <= 4
+        assert len(tips) <= 4  # nosec B101
 
 
 # 3. app.py — integration tests via Flask test client
@@ -219,8 +220,8 @@ class TestAPI:
     def test_health(self, client):
         response = client.get("/api/health")
 
-        assert response.status_code == 200
-        assert response.get_json()["status"] == "ok"
+        assert response.status_code == 200  # nosec B101
+        assert response.get_json()["status"] == "ok"  # nosec B101
 
     def test_login_creates_user(self, client):
         response = client.post(
@@ -231,12 +232,12 @@ class TestAPI:
             },
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 200  # nosec B101
 
         body = response.get_json()
 
-        assert body["name"] == "Aditi Rao"
-        assert "id" in body
+        assert body["name"] == "Aditi Rao"  # nosec B101
+        assert "id" in body  # nosec B101
 
     def test_login_is_idempotent_by_email(self, client):
         response_one = client.post(
@@ -255,7 +256,7 @@ class TestAPI:
             },
         )
 
-        assert response_one.get_json()["id"] == response_two.get_json()["id"]
+        assert response_one.get_json()["id"] == response_two.get_json()["id"]  # nosec B101
 
     def test_login_missing_fields_returns_400(self, client):
         response = client.post(
@@ -263,7 +264,7 @@ class TestAPI:
             json={"name": ""},
         )
 
-        assert response.status_code == 400
+        assert response.status_code == 400  # nosec B101
 
     def test_add_activity_valid(self, client):
         response = client.post(
@@ -277,8 +278,8 @@ class TestAPI:
             },
         )
 
-        assert response.status_code == 201
-        assert response.get_json()["co2"] == 4.8
+        assert response.status_code == 201  # nosec B101
+        assert response.get_json()["co2"] == 4.8  # nosec B101
 
     def test_add_activity_invalid_returns_400(self, client):
         response = client.post(
@@ -291,8 +292,8 @@ class TestAPI:
             },
         )
 
-        assert response.status_code == 400
-        assert "error" in response.get_json()
+        assert response.status_code == 400  # nosec B101
+        assert "error" in response.get_json()  # nosec B101
 
     def test_dashboard_totals(self, client):
         client.post(
@@ -319,9 +320,9 @@ class TestAPI:
         response = client.get("/api/dashboard/1")
         data = response.get_json()
 
-        assert data["totals"]["electricity"] == 16.4
-        assert data["totals"]["food"] == 9.9
-        assert data["total_co2"] == pytest.approx(26.3, 0.01)
+        assert data["totals"]["electricity"] == 16.4  # nosec B101
+        assert data["totals"]["food"] == 9.9  # nosec B101
+        assert data["total_co2"] == pytest.approx(26.3, 0.01)  # nosec B101
 
     def test_goal_set_and_get(self, client):
         client.post(
@@ -334,7 +335,7 @@ class TestAPI:
 
         response = client.get("/api/goal/1")
 
-        assert response.get_json()["target"] == 100.0
+        assert response.get_json()["target"] == 100.0  # nosec B101
 
     def test_goal_rejects_non_positive(self, client):
         response = client.post(
@@ -345,7 +346,7 @@ class TestAPI:
             },
         )
 
-        assert response.status_code == 400
+        assert response.status_code == 400  # nosec B101
 
     def test_recommendations_endpoint(self, client):
         response = client.post(
@@ -362,9 +363,9 @@ class TestAPI:
             },
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 200  # nosec B101
 
         tips = response.get_json()
 
-        assert isinstance(tips, list)
-        assert len(tips) >= 1
+        assert isinstance(tips, list)  # nosec B101
+        assert len(tips) >= 1  # nosec B101
