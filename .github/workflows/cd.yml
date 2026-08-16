@@ -1,0 +1,85 @@
+name: CarbonSense CD
+
+# Runs after CI completes successfully on dev or main
+on:
+  workflow_run:
+    workflows: ["CarbonSense CI"]
+    types: [completed]
+
+jobs:
+
+  # ---------- DEPLOY TO DEV (auto, no approval) ----------
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'dev'
+    environment: development
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Deploy via Docker Compose (dev server)
+        run: |
+          echo "Pulling latest images and restarting dev stack"
+          # ssh into dev host and: docker compose pull && docker compose up -d
+          # placeholder for actual deploy command / self-hosted runner script
+
+      - name: Health check
+        run: curl --fail http://dev.carbonsense.local:5000/api/health || exit 1
+
+  # ---------- DEPLOY TO STAGING (auto after dev, manual reviewer approval) ----------
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: deploy-dev
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    environment:
+      name: staging
+      # "environment" with required reviewers configured in repo Settings
+      # forces a manual approval gate before this job runs
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Deploy via Docker Compose (staging server)
+        run: |
+          echo "Deploying tagged images to staging"
+
+      - name: Run smoke tests against staging
+        run: |
+          curl --fail http://staging.carbonsense.local:5000/api/health || exit 1
+
+  # ---------- DEPLOY TO PRODUCTION (manual approval + tag) ----------
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    environment:
+      name: production
+      # requires a second, separate manual approval from a designated approver
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Deploy via Docker Compose (production server)
+        run: |
+          echo "Deploying release image ${{ github.sha }} to production"
+
+      - name: Post-deploy health check
+        id: health
+        run: curl --fail http://carbonsense.example.com/api/health || exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Health check failed - rolling back to previous stable tag"
+          # docker compose pull carbonsense-backend:previous-stable
+          # docker compose up -d
+
+      - name: Notify team of deployment result
+        if: always()
+        run: echo "Production deploy status - ${{ job.status }}. Send Slack/Email notification here."
