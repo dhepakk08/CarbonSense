@@ -1,21 +1,21 @@
 name: CarbonSense CI
 
-# Triggers: run on every push and pull request targeting dev or main
 on:
   push:
-    branches: [ "dev", "main" ]
+    branches: ["dev", "main"]
   pull_request:
-    branches: [ "dev", "main" ]
+    branches: ["dev", "main"]
 
 jobs:
 
-  # ---------- 1. BACKEND: LINT + UNIT/INTEGRATION TESTS ----------
+  # ---------- 1. BACKEND: LINT + TESTS ----------
   backend-test:
     name: Backend Lint & Test
     runs-on: ubuntu-latest
+
     defaults:
       run:
-        working-directory: backend
+        working-directory: Back-end
 
     steps:
       - name: Checkout source code
@@ -26,6 +26,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: Back-end/requirements.txt
 
       - name: Install dependencies
         run: |
@@ -34,27 +35,32 @@ jobs:
           pip install pytest pytest-cov flake8 bandit
 
       - name: Lint with flake8
-        run: flake8 . --max-line-length=120 --exclude=venv
+        run: |
+          flake8 . --max-line-length=120 --exclude=venv
 
-      - name: Static security scan with bandit
-        run: bandit -r . -x ./tests,./venv
+      - name: Static security scan with Bandit
+        run: |
+          bandit -r . -x ./tests,./venv
 
-      - name: Run unit & integration tests with coverage
-        run: pytest test_carbonsense.py -v --cov=. --cov-report=xml --cov-report=term
+      - name: Run tests with coverage
+        run: |
+          pytest -v --cov=. --cov-report=xml --cov-report=term
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage-report
-          path: backend/coverage.xml
+          path: Back-end/coverage.xml
+
 
   # ---------- 2. FRONTEND: LINT ----------
   frontend-lint:
     name: Frontend Lint
     runs-on: ubuntu-latest
+
     defaults:
       run:
-        working-directory: frontend
+        working-directory: Front-end
 
     steps:
       - name: Checkout source code
@@ -66,16 +72,23 @@ jobs:
           node-version: "20"
 
       - name: Install ESLint
-        run: npm install eslint --no-save
+        run: |
+          npm install eslint --no-save
 
-      - name: Run ESLint on script.js
-        run: npx eslint script.js --no-eslintrc --env browser,es2021 || true
+      - name: Run ESLint
+        run: |
+          npx eslint script.js --no-eslintrc --env browser,es2021 || true
 
-  # ---------- 3. CODE QUALITY GATE (SonarCloud) ----------
+
+  # ---------- 3. CODE QUALITY ----------
   code-quality:
     name: SonarCloud Quality Gate
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-lint]
+
+    needs:
+      - backend-test
+      - frontend-lint
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -86,7 +99,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-coverage-report
-          path: backend/
+          path: Back-end/
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
@@ -94,12 +107,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  # ---------- 4. BUILD & PACKAGE DOCKER IMAGES ----------
+
+  # ---------- 4. BUILD & PUSH DOCKER IMAGES ----------
   build-and-package:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
-    needs: [code-quality]
+
+    needs:
+      - code-quality
+
+    # Only build/push Docker images when code is pushed,
+    # not when a pull request is opened.
     if: github.event_name == 'push'
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -114,24 +134,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push backend image
-        uses: docker/build-push-action@v5
+      - name: Build & Push Backend Docker Image
+        uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: ./Back-end
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/carbonsense-backend:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/carbonsense-backend:latest
 
-      - name: Build & push frontend image
-        uses: docker/build-push-action@v5
+      - name: Build & Push Frontend Docker Image
+        uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: ./Front-end
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/carbonsense-frontend:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/carbonsense-frontend:latest
 
-      - name: Notify pipeline status
+      - name: Pipeline status
         if: always()
-        run: echo "Build status - ${{ job.status }}. Add Slack/Email webhook step here."
+        run: |
+          echo "Build status: ${{ job.status }}"
