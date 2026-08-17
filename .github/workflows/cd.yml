@@ -43,7 +43,7 @@ jobs:
             try {
               $response = Invoke-WebRequest -Uri $healthUrl -Method Get -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
               if ($response.StatusCode -eq 200) {
-                Write-Host "✓ Health check passed!"
+                Write-Host "[OK] Health check passed!"
                 exit 0
               }
             } catch {
@@ -54,6 +54,6 @@ jobs:
             }
           } while ($retryCount -lt $maxRetries)
           
-          Write-Host "✗ Health check failed after $maxRetries attempts"
+          Write-Host "[FAILED] Health check failed after $maxRetries attempts"
           exit 1
         shell: powershell
