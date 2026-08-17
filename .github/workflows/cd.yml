@@ -32,6 +32,28 @@ jobs:
 
       - name: Health check
         run: |
-          Start-Sleep -Seconds 10
-          Invoke-WebRequest http://localhost:5000/api/health
+          Write-Host "Waiting for services to start..."
+          $maxRetries = 15
+          $retryCount = 0
+          $healthUrl = "http://localhost:5000/api/health"
+          
+          do {
+            $retryCount++
+            Write-Host "Health check attempt $retryCount/$maxRetries..."
+            try {
+              $response = Invoke-WebRequest -Uri $healthUrl -Method Get -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+              if ($response.StatusCode -eq 200) {
+                Write-Host "✓ Health check passed!"
+                exit 0
+              }
+            } catch {
+              Write-Host "Attempt $retryCount failed: $($_.Exception.Message)"
+              if ($retryCount -lt $maxRetries) {
+                Start-Sleep -Seconds 2
+              }
+            }
+          } while ($retryCount -lt $maxRetries)
+          
+          Write-Host "✗ Health check failed after $maxRetries attempts"
+          exit 1
         shell: powershell
